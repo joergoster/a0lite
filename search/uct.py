@@ -18,8 +18,10 @@ class UCTNode():
         self.prior = prior  # float
         if parent == None:
             self.total_value = FPU_ROOT  # float
+            self.ply = 0
         else:
             self.total_value = FPU
+            self.ply = parent.ply + 1
         self.number_visits = 0  # int
 
     def Q(self):  # returns float
@@ -54,13 +56,20 @@ class UCTNode():
         current = self
         # Child nodes are multiplied by -1 because we want max(-opponent eval)
         turnfactor = -1
-        while current.parent is not None:
+        # Interior nodes and draw nodes are backuped once
+        backups = 1
+        # Terminal win/loss nodes are backuped more often,
+        # dependant on their distance to the root!
+        if (value_estimate == 1.0 || value_estimate == -1.0)
+            backups = max(100 - 2 * current.ply, 1)
+        for i in range (backups):
             current.number_visits += 1
-            current.total_value += (value_estimate *
-                                    turnfactor)
-            current = current.parent
-            turnfactor *= -1
-        current.number_visits += 1
+            while current.parent is not None:
+                current.number_visits += 1
+                current.total_value += (value_estimate *
+                                        turnfactor)
+                current = current.parent
+                turnfactor *= -1
 
 def get_best_move(root):
     bestmove, node = max(root.children.items(), key=lambda item: (item[1].number_visits, item[1].Q()))
