@@ -93,7 +93,7 @@ def UCT_search(board, num_reads, net=None, C=1.0, verbose=False, max_time=None, 
         # Terminal wins/losses are backuped more often,
         # dependant on their distance to the root!
         # Interior nodes and draw nodes are backuped once.
-        if (value_estimate == 1.0 || value_estimate == -1.0)
+        if (value_estimate == -1.0):
             backups = max(200 - 10 * leaf.ply, 1)
         else:
             backups = 1
