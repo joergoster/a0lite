@@ -7,6 +7,9 @@ from search.util import cp
 
 FPU = -1.0
 FPU_ROOT = 0.0
+WIN = 1.0
+LOSS = -1.0
+DRAW = 0.0
 
 class UCTNode():
     def __init__(self, board=None, parent=None, move=None, prior=0):
@@ -18,8 +21,10 @@ class UCTNode():
         self.prior = prior  # float
         if parent == None:
             self.total_value = FPU_ROOT  # float
+            self.ply = 0
         else:
             self.total_value = FPU
+            self.ply = parent.ply + 1
         self.number_visits = 0  # int
 
     def Q(self):  # returns float
@@ -56,11 +61,14 @@ class UCTNode():
         turnfactor = -1
         while current.parent is not None:
             current.number_visits += 1
-            current.total_value += (value_estimate *
-                                    turnfactor)
+            current.total_value += (value_estimate * turnfactor)
             current = current.parent
             turnfactor *= -1
-        current.number_visits += 1
+        current.number_visits += 1 # root node
+        # current.total_value += (value_estimate * turnfactor)
+
+def scaled_loss(ply):
+    return LOSS + ply / 10000.0
 
 def get_best_move(root):
     bestmove, node = max(root.children.items(), key=lambda item: (item[1].number_visits, item[1].Q()))
@@ -87,7 +95,20 @@ def UCT_search(board, num_reads, net=None, C=1.0, verbose=False, max_time=None, 
         leaf = root.select_leaf(C)
         child_priors, value_estimate = net.evaluate(leaf.board)
         leaf.expand(child_priors)
-        leaf.backup(value_estimate)
+
+        # Terminal nodes are backuped more often, and losses
+        # are scaled dependant on their distance to the root!
+        if value_estimate == LOSS:
+            backups = 16
+            value_estimate = scaled_loss(leaf.ply)
+        elif value_estimate == DRAW:
+            backups = 16
+        else:
+            backups = 1
+
+        for i in range (backups):
+            leaf.backup(value_estimate)
+
         now = time()
         delta = now - start
         if (delta - delta_last > 5):
